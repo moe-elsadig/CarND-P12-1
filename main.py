@@ -38,13 +38,15 @@ def load_vgg(sess, vgg_path):
     tf.saved_model.loader.load(
         sess, [vgg_tag], vgg_path)
 
-    ops = sess.graph.get_operations()
+    graph = sess.graph
 
-    input_image = sess.graph.get_tensor_by_name(vgg_input_tensor_name)
-    keep_prob  = sess.graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
-    vgg_layer3_out  = sess.graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
-    vgg_layer4_out  = sess.graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
-    vgg_layer7_out  = sess.graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
+    ops = graph.get_operations()
+
+    input_image = graph.get_tensor_by_name(vgg_input_tensor_name)
+    keep_prob  = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
+    vgg_layer3_out  = graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
+    vgg_layer4_out  = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
+    vgg_layer7_out  = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
 
     return input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out
 
@@ -101,7 +103,16 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
     # TODO: Implement function
-    return None, None, None
+
+    logits = tf.reshape(nn_last_layer, (-1, num_classes))
+    labels = tf.reshape(correct_label, (-1, num_classes))
+
+    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits= logits, labels= labels))
+
+    train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy_loss)
+    
+    return logits, train_op, cross_entropy_loss
+
 tests.test_optimize(optimize)
 
 
@@ -121,6 +132,13 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param learning_rate: TF Placeholder for learning rate
     """
     # TODO: Implement function
+
+
+
+
+
+
+    
     pass
 tests.test_train_nn(train_nn)
 
@@ -131,6 +149,9 @@ def run():
     data_dir = './data'
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
+
+    learning_rate = tf.placeholder(tf.float32, 10)
+    correct_label = tf.placeholder(tf.float32, [None, image_shape[0], image_shape[1], num_classes])
 
     # Download pretrained vgg model
     helper.maybe_download_pretrained_vgg(data_dir)
@@ -153,9 +174,13 @@ def run():
 
         print("\n\nVGG loaded!\n\n")
 
-        last_layer_nn_tensor = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes)
+        nn_last_layer = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes)
 
-        print("\n\Layers set!\n\n")
+        print("\n\nLayers set!\n\n")
+
+        logits, train_op, cross_entropy_loss = optimize(nn_last_layer, correct_label, learning_rate, num_classes)
+
+        print("\n\nOptimised!\n\n")
 
         # TODO: Train NN using the train_nn function
 
