@@ -61,7 +61,33 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
     # TODO: Implement function
-    return None
+
+    #first layer
+    conv_1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, strides= (1,1))
+    
+    #transpose layer
+    trans_1 = tf.layers.conv2d_transpose(conv_1, num_classes, 4, strides= (2,2))
+
+    #conv for skip layer
+    conv_2 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, strides= (1,1))
+
+    #skip layer
+    skip_1 = tf.add(trans_1, conv_2)
+
+    #transpose layer
+    trans_2 = tf.layers.conv2d_transpose(skip_1, num_classes, 8, strides= (4,4))
+
+    #conv for skip layer
+    conv_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, strides= (1,1))
+
+    #skip layer
+    skip_2 = tf.add(trans_2, conv_3)
+
+    #transpose layer
+    trans_3 = tf.layers.conv2d_transpose(skip_2, num_classes, 16, strides= (8,8))
+    
+    return trans_3
+
 tests.test_layers(layers)
 
 
@@ -124,9 +150,12 @@ def run():
 
         # TODO: Build NN using load_vgg, layers, and optimize function
         input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out = load_vgg(sess, vgg_path)
+
         print("\n\nVGG loaded!\n\n")
 
-        
+        last_layer_nn_tensor = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes)
+
+        print("\n\Layers set!\n\n")
 
         # TODO: Train NN using the train_nn function
 
