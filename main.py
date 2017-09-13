@@ -1,10 +1,10 @@
 import os.path
 import tensorflow as tf
-import helper
 import warnings
 from distutils.version import LooseVersion
-import project_tests as tests
 
+import helper
+import project_tests as tests
 
 # Check TensorFlow Version
 assert LooseVersion(tf.__version__) >= LooseVersion('1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
@@ -25,7 +25,7 @@ def load_vgg(sess, vgg_path):
     :return: Tuple of Tensors from VGG model (image_input, keep_prob, layer3_out, layer4_out, layer7_out)
     """
     # TODO: Implement function
-    helper.maybe_download_pretrained_vgg(vgg_path)
+    # helper.maybe_download_pretrained_vgg(vgg_path)
 
     #   Use tf.saved_model.loader.load to load the model and weights
     vgg_tag = 'vgg16'
@@ -35,20 +35,18 @@ def load_vgg(sess, vgg_path):
     vgg_layer4_out_tensor_name = 'layer4_out:0'
     vgg_layer7_out_tensor_name = 'layer7_out:0'
     
-    tf.saved_model.loader.load(
-        sess, [vgg_tag], vgg_path)
+    tf.saved_model.loader.load(sess, [vgg_tag], vgg_path)
 
-    graph = sess.graph
+    graph = tf.get_default_graph()
 
-    ops = graph.get_operations()
-
-    input_image = graph.get_tensor_by_name(vgg_input_tensor_name)
+    input_w1 = graph.get_tensor_by_name(vgg_input_tensor_name)
     keep_prob  = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
     vgg_layer3_out  = graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
     vgg_layer4_out  = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
     vgg_layer7_out  = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
 
-    return input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out
+    return input_w1, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out
+
 
 tests.test_load_vgg(load_vgg, tf)
 
@@ -65,28 +63,34 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     # TODO: Implement function
 
     #first layer
-    conv_1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, strides= (1,1))
+    conv_1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding= 'SAME',
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
     
     #transpose layer
-    trans_1 = tf.layers.conv2d_transpose(conv_1, num_classes, 4, strides= (2,2))
+    trans_1 = tf.layers.conv2d_transpose(conv_1, num_classes, 4, 2, padding= 'SAME',
+                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
 
     #conv for skip layer
-    conv_2 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, strides= (1,1))
+    conv_2 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, padding= 'SAME',
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
 
     #skip layer
     skip_1 = tf.add(trans_1, conv_2)
 
     #transpose layer
-    trans_2 = tf.layers.conv2d_transpose(skip_1, num_classes, 8, strides= (4,4))
+    trans_2 = tf.layers.conv2d_transpose(skip_1, num_classes, 4, 2, padding= 'SAME',
+                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
 
     #conv for skip layer
-    conv_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, strides= (1,1))
+    conv_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, padding= 'SAME',
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
 
     #skip layer
     skip_2 = tf.add(trans_2, conv_3)
 
     #transpose layer
-    trans_3 = tf.layers.conv2d_transpose(skip_2, num_classes, 16, strides= (8,8))
+    trans_3 = tf.layers.conv2d_transpose(skip_2, num_classes, 16, 8, padding= 'SAME',
+                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
     
     return trans_3
 
@@ -133,11 +137,18 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     """
     # TODO: Implement function
 
+    sess.run(tf.global_variables_initializer())
 
+    for epoch in range(epochs):
 
+        for image, label in get_batches_fn(batch_size):
 
-
-
+            feed_dictionary = {input_image: image,
+                                correct_label: label,
+                                keep_prob: 0.5,
+                                learning_rate: 0.001}
+            loss, _ = sess.run([cross_entropy_loss, train_op], feed_dictionary)
+            print(loss)
     
     pass
 tests.test_train_nn(train_nn)
@@ -150,11 +161,14 @@ def run():
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
 
-    learning_rate = tf.placeholder(tf.float32, 10)
-    correct_label = tf.placeholder(tf.float32, [None, image_shape[0], image_shape[1], num_classes])
+    learning_rate = tf.placeholder(tf.float32, None)
+    correct_label = tf.placeholder(tf.float32, [None, None, None, num_classes])
+
+    epochs = 2
+    batch_size = 8
 
     # Download pretrained vgg model
-    helper.maybe_download_pretrained_vgg(data_dir)
+    # helper.maybe_download_pretrained_vgg(data_dir)
 
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
@@ -170,6 +184,7 @@ def run():
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # TODO: Build NN using load_vgg, layers, and optimize function
+
         input_image, keep_prob, vgg_layer3_out, vgg_layer4_out, vgg_layer7_out = load_vgg(sess, vgg_path)
 
         print("\n\nVGG loaded!\n\n")
@@ -184,8 +199,16 @@ def run():
 
         # TODO: Train NN using the train_nn function
 
+        train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
+                 correct_label, keep_prob, learning_rate)
+
+        print("\n\nTrained!\n\n")
+
+
         # TODO: Save inference data using helper.save_inference_samples
         #  helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
 
         # OPTIONAL: Apply the trained model to a video
 
