@@ -141,6 +141,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
     for epoch in range(epochs):
 
+        print("\nEpoch:\t", epoch, " / ", epochs, "\t\t\n\n")
         for image, label in get_batches_fn(batch_size):
 
             feed_dictionary = {input_image: image,
@@ -148,8 +149,9 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
                                 keep_prob: 0.5,
                                 learning_rate: 0.001}
             loss, _ = sess.run([cross_entropy_loss, train_op], feed_dictionary)
-            print(loss)
-    
+            print("\rLoss:", loss)
+
+
     pass
 tests.test_train_nn(train_nn)
 
@@ -164,7 +166,7 @@ def run():
     learning_rate = tf.placeholder(tf.float32, None)
     correct_label = tf.placeholder(tf.float32, [None, None, None, num_classes])
 
-    epochs = 2
+    epochs = 6
     batch_size = 8
 
     # Download pretrained vgg model
