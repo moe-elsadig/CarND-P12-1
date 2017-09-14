@@ -64,33 +64,33 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
 
     #first layer
     conv_1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding= 'SAME',
-                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
     
     #transpose layer
     trans_1 = tf.layers.conv2d_transpose(conv_1, num_classes, 4, 2, padding= 'SAME',
-                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
 
     #conv for skip layer
     conv_2 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, padding= 'SAME',
-                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
 
     #skip layer
     skip_1 = tf.add(trans_1, conv_2)
 
     #transpose layer
     trans_2 = tf.layers.conv2d_transpose(skip_1, num_classes, 4, 2, padding= 'SAME',
-                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
 
     #conv for skip layer
     conv_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, padding= 'SAME',
-                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
 
     #skip layer
     skip_2 = tf.add(trans_2, conv_3)
 
     #transpose layer
     trans_3 = tf.layers.conv2d_transpose(skip_2, num_classes, 16, 8, padding= 'SAME',
-                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
     
     return trans_3
 
@@ -141,12 +141,12 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
     for epoch in range(epochs):
 
-        print("\nEpoch:\t", epoch, " / ", epochs, "\t\t\n\n")
+        print("\nEpoch:\t", epoch+1, " / ", epochs, "\t\t\n\n")
         for image, label in get_batches_fn(batch_size):
 
             feed_dictionary = {input_image: image,
                                 correct_label: label,
-                                keep_prob: 0.5,
+                                keep_prob: 0.3,
                                 learning_rate: 0.001}
             loss, _ = sess.run([cross_entropy_loss, train_op], feed_dictionary)
             print("\rLoss:", loss)
@@ -166,8 +166,8 @@ def run():
     learning_rate = tf.placeholder(tf.float32, None)
     correct_label = tf.placeholder(tf.float32, [None, None, None, num_classes])
 
-    epochs = 10
-    batch_size = 12
+    epochs = 3
+    batch_size = 1
 
     # Download pretrained vgg model
     # helper.maybe_download_pretrained_vgg(data_dir)
