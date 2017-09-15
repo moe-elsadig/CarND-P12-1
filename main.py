@@ -51,7 +51,7 @@ def load_vgg(sess, vgg_path):
 tests.test_load_vgg(load_vgg, tf)
 
 
-def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
+def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes, reg_param=1e-3):
     """
     Create the layers for a fully convolutional network.  Build skip-layers using the vgg layers.
     :param vgg_layer7_out: TF Tensor for VGG Layer 3 output
@@ -62,22 +62,32 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
     # TODO: Implement function
 
-    reg_param = 1e-5
-
     #first layer
     conv_1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding= 'SAME',
                               kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
-                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
+                              kernel_initializer=tf.contrib.layers.xavier_initializer(
+                                  uniform=True,
+                                  seed=None,
+                                  dtype=tf.float32
+                              ))
     
     #transpose layer
     trans_1 = tf.layers.conv2d_transpose(conv_1, num_classes, 4, 2, padding= 'SAME',
                               kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
-                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
+                                         kernel_initializer=tf.contrib.layers.xavier_initializer(
+                                             uniform=True,
+                                             seed=None,
+                                             dtype=tf.float32
+                                         ))
 
     #conv for skip layer
     conv_2 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, padding= 'SAME',
                               kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
-                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
+                              kernel_initializer=tf.contrib.layers.xavier_initializer(
+                                  uniform=True,
+                                  seed=None,
+                                  dtype=tf.float32
+                              ))
 
     #skip layer
     skip_1 = tf.add(trans_1, conv_2)
@@ -85,12 +95,20 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     #transpose layer
     trans_2 = tf.layers.conv2d_transpose(skip_1, num_classes, 4, 2, padding= 'SAME',
                               kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
-                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
+                                         kernel_initializer=tf.contrib.layers.xavier_initializer(
+                                             uniform=True,
+                                             seed=None,
+                                             dtype=tf.float32
+                                         ))
 
     #conv for skip layer
     conv_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, padding= 'SAME',
                               kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
-                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
+                              kernel_initializer=tf.contrib.layers.xavier_initializer(
+                                  uniform=True,
+                                  seed=None,
+                                  dtype=tf.float32
+                              ))
 
     #skip layer
     skip_2 = tf.add(trans_2, conv_3)
@@ -98,7 +116,11 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     #transpose layer
     trans_3 = tf.layers.conv2d_transpose(skip_2, num_classes, 16, 8, padding= 'SAME',
                               kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
-                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
+                                         kernel_initializer=tf.contrib.layers.xavier_initializer(
+                                             uniform=True,
+                                             seed=None,
+                                             dtype=tf.float32
+                                         ))
     
     return trans_3
 
@@ -129,7 +151,7 @@ tests.test_optimize(optimize)
 
 
 def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-             correct_label, keep_prob, learning_rate):
+             correct_label, keep_prob, learning_rate, k_prob, l_rate, reg_param):
     """
     Train neural network and print out the loss during training.
     :param sess: TF Session
@@ -149,22 +171,25 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
     for epoch in range(epochs):
 
-        print("\nEpoch:\t", epoch+1, " / ", epochs, "\t\t\n\n")
+        print("\nEpoch:\t", epoch+1, " / ", epochs, "\tk_prob:\t", k_prob, "\tl_rate:\t", l_rate,
+              "\treg_param\t", reg_param,"\n\n")
+
         for image, label in get_batches_fn(batch_size):
 
             feed_dictionary = {input_image: image,
                                 correct_label: label,
-                                keep_prob: 0.3,
-                                learning_rate: 0.001}
+                                keep_prob: k_prob,
+                                learning_rate: l_rate}
             loss, _ = sess.run([cross_entropy_loss, train_op], feed_dictionary)
-            print("\rLoss:", loss)
+            print("Loss:", loss)
 
 
     pass
 tests.test_train_nn(train_nn)
 
 
-def run():
+def run(k_prob=0.5, l_rate=0.001, reg_param=1e-3, curr_tag="none"):
+
     num_classes = 2
     image_shape = (160, 576)
     data_dir = './data'
@@ -174,8 +199,8 @@ def run():
     learning_rate = tf.placeholder(tf.float32, None)
     correct_label = tf.placeholder(tf.float32, [None, None, None, num_classes])
 
+    batch_size = 2
     epochs = 3
-    batch_size = 1
 
     # Download pretrained vgg model
     # helper.maybe_download_pretrained_vgg(data_dir)
@@ -199,7 +224,7 @@ def run():
 
         print("\n\nVGG loaded!\n\n")
 
-        nn_last_layer = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes)
+        nn_last_layer = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes, reg_param)
 
         print("\n\nLayers set!\n\n")
 
@@ -210,7 +235,7 @@ def run():
         # TODO: Train NN using the train_nn function
 
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-                 correct_label, keep_prob, learning_rate)
+                 correct_label, keep_prob, learning_rate, k_prob, l_rate, reg_param)
 
         print("\n\nTrained!\n\n")
 
@@ -218,10 +243,18 @@ def run():
         # TODO: Save inference data using helper.save_inference_samples
         #  helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
 
-        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob,
+                                      input_image, curr_tag)
 
         # OPTIONAL: Apply the trained model to a video
 
 
 if __name__ == '__main__':
-    run()
+
+    for i in range(1, 5):
+        for j in range(1, 3):
+            for k in range(1, 3):
+
+                curr_tag = "klr_" + str(i) + str(j) + str(k) + "_"
+                run((0.3*i - 0.1), (0.001**j), (0.001**k), curr_tag)
+

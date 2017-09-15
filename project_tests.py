@@ -86,7 +86,8 @@ def test_layers(layers):
     vgg_layer3_out = tf.placeholder(tf.float32, [None, None, None, 256])
     vgg_layer4_out = tf.placeholder(tf.float32, [None, None, None, 512])
     vgg_layer7_out = tf.placeholder(tf.float32, [None, None, None, 4096])
-    layers_output = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes)
+    reg_param = 1e-3
+    layers_output = layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes, reg_param)
 
     _assert_tensor_shape(layers_output, [None, None, None, num_classes], 'Layers Output')
 
@@ -125,6 +126,9 @@ def test_train_nn(train_nn):
     correct_label = tf.placeholder(tf.float32, name='correct_label')
     keep_prob = tf.placeholder(tf.float32, name='keep_prob')
     learning_rate = tf.placeholder(tf.float32, name='learning_rate')
+    k_prob = 0.5
+    l_rate = 0.001
+    reg_param = 1e-3
     with tf.Session() as sess:
         parameters = {
             'sess': sess,
@@ -136,7 +140,10 @@ def test_train_nn(train_nn):
             'input_image': input_image,
             'correct_label': correct_label,
             'keep_prob': keep_prob,
-            'learning_rate': learning_rate}
+            'learning_rate': learning_rate,
+            'k_prob': k_prob,
+            'l_rate': l_rate,
+            'reg_param': reg_param}
         _prevent_print(train_nn, parameters)
 
 
