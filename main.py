@@ -62,35 +62,43 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     """
     # TODO: Implement function
 
+    reg_param = 1e-5
+
     #first layer
     conv_1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding= 'SAME',
-                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
+                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
     
     #transpose layer
     trans_1 = tf.layers.conv2d_transpose(conv_1, num_classes, 4, 2, padding= 'SAME',
-                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
+                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
 
     #conv for skip layer
     conv_2 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, padding= 'SAME',
-                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
+                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
 
     #skip layer
     skip_1 = tf.add(trans_1, conv_2)
 
     #transpose layer
     trans_2 = tf.layers.conv2d_transpose(skip_1, num_classes, 4, 2, padding= 'SAME',
-                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
+                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
 
     #conv for skip layer
     conv_3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, padding= 'SAME',
-                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
+                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
 
     #skip layer
     skip_2 = tf.add(trans_2, conv_3)
 
     #transpose layer
     trans_3 = tf.layers.conv2d_transpose(skip_2, num_classes, 16, 8, padding= 'SAME',
-                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5))
+                              kernel_regularizer=tf.contrib.layers.l2_regularizer(reg_param),
+                              kernel_initializer=tf.truncated_normal_initializer(stddev=0.01))
     
     return trans_3
 
