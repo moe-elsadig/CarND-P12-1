@@ -199,8 +199,8 @@ def run(k_prob=0.5, l_rate=0.001, reg_param=1e-3, curr_tag="none"):
     learning_rate = tf.placeholder(tf.float32, None)
     correct_label = tf.placeholder(tf.float32, [None, None, None, num_classes])
 
-    batch_size = 2
-    epochs = 3
+    batch_size = 5
+    epochs = 30
 
     # Download pretrained vgg model
     # helper.maybe_download_pretrained_vgg(data_dir)
@@ -251,10 +251,9 @@ def run(k_prob=0.5, l_rate=0.001, reg_param=1e-3, curr_tag="none"):
 
 if __name__ == '__main__':
 
-    for i in range(1, 5):
-        for j in range(1, 3):
-            for k in range(1, 3):
-
-                curr_tag = "klr_" + str(i) + str(j) + str(k) + "_"
-                run((0.3*i - 0.1), (0.001**j), (0.001**k), curr_tag)
+    for i in range(1, 2):	#9
+        for j in range(3, 6):	#4
+        	k = 1e-3
+        	curr_tag = "epock-20_k-" + str(i) + "_l-" + str(j) + "_r-" + str(k) + "_"
+        	run((0.1*i), (0.1**j), (k), curr_tag)
 
